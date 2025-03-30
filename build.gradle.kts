@@ -1,12 +1,10 @@
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.util.*
-
 plugins {
 	java
 	id("org.springframework.boot") version "3.4.2"
 	id("io.spring.dependency-management") version "1.1.7"
+	id ("org.flywaydb.flyway") version "10.20.1"
 }
+
 
 group = "br.com.dio"
 version = "0.0.1-SNAPSHOT"
@@ -15,6 +13,16 @@ java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(21)
 	}
+
+	flyway {
+		url = "jdbc:postgresql://localhost:5432/barber-shop-api"   // URL de conexão com o banco de dados
+		user = "barber-shop-api"                                     // Usuário do banco de dados
+		password = "barber-shop-api"                                 // Senha do banco de dados
+		locations =
+            listOf("classpath:db/migration").toTypedArray()                     // Local onde as migrações SQL estão localizadas
+		schemas = listOf("public").toTypedArray()                                         // O esquema do banco de dados
+	}
+
 }
 
 configurations {
@@ -54,39 +62,4 @@ dependencies {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
-}
-
-tasks.named("build") {
-	doLast{
-		val trigger = file("src/main/resources/trigger.txt")
-		if (!trigger.exists()){
-			trigger.createNewFile()
-		}
-		trigger.writeText(Date().time.toString())
-	}
-}
-
-tasks.register("generateFlywayMigrationFile"){
-
-	description = "Generate flyway migration"
-	group = "Flyway"
-
-	doLast {
-		val migrationsDir = file("src/main/resources/db/migration")
-		if (!migrationsDir.exists()) {
-			migrationsDir.mkdirs()
-		}
-
-		val migrationNameFromConsole = project.findProperty("migrationName") as String?
-			?: throw IllegalArgumentException("Você deve fornecer um nome para a migração usando o parâmetro -PmigrationName=<nome>.")
-
-		val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
-		val migrationName = "V${timestamp}__${migrationNameFromConsole}.sql"
-
-		val migrationFile = file("${migrationsDir.path}/$migrationName")
-		migrationFile.writeText("-- $migrationName generated in ${migrationsDir.path}")
-
-		logger.lifecycle("Migration file created: ${migrationFile.path}")
-
-	}
 }
